@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <title>Crossing Game</title>
+        <style type="text/css">
+            canvas {
+                border: 2px solid black;
+                background-color: red;
+            }
+        </style>
+    </head>
+
+    <body>
+        <h1>Crossing Game</h1>
+        <canvas id="myCanvas" width="1000", height="500">
+
+        </canvas>
+        <script type="text/javascript">
+            var canvas = document.getElementById('myCanvas');
+            var ctx = canvas.getContext('2d');
+            var isGameLive = true;
+            var isRightKeyPressed = false;
+            var isLeftKeyPressed = false;
+
+            /*
+                if false: playerSprites[0]
+                if true:  playerSprites[1]
+            */
+            var isImageReversed = false;
+
+            /*
+                if false: enemySprites[0]
+                if true:  enemySprites[1]
+            */
+            var isEnemyReversed = false;
+
+            let screenWidth = 1000;
+            let screenHeight = 500;
+            let width = 50;
+
+            class GameCharacter {
+                constructor(x, y, width, height, color, speed) {
+                    this.x = x;
+                    this.y = y;
+                    this.width = width;
+                    this.height = height;
+                    this.color = color;
+                    this.speed = speed;
+                    this.maxSpeed = 4;
+                }
+
+                // For player
+                p_moveHorizontally() {
+                    if (this.x > screenWidth - 100 || this.x < 50) {
+                        this.speed = -this.speed;
+                    }
+                    this.x += this.speed;
+                }
+
+                p_moveVertically() {
+                    if (this.y > screenHeight - 100 || this.y < 50) {
+                        this.speed = -this.speed;
+                    }
+                    this.y += this.speed;
+                }
+
+                // For enemy
+                e_moveHorizontally() {
+                    if (this.x > screenWidth - 100 || this.x < 50) {
+                        this.speed = -this.speed;
+                    }
+                    this.x += this.speed;
+                }
+
+                // For enemy
+                e_moveVertically() {
+                    if (this.y > screenHeight - 100) {
+                        isEnemyReversed = false;
+                        this.speed = -this.speed;
+                    } else if (this.y < 50) {
+                        isEnemyReversed = true;
+                        this.speed = -this.speed;
+                    }
+                    this.y += this.speed;
+                }
+            }
+
+            var sprites = {};
+            var playerSprites = [ "images/hero_right.png", "images/hero_left.png" ];
+            var enemySprites = [ "images/enemy_haut.png", "images/enemy_bas.png"];
+            var loadSprites = function() {
+                sprites.player = new Image();
+                sprites.player.src = playerSprites[0];
+
+                sprites.background = new Image();
+                sprites.background.src = "images/floor.png";
+
+                sprites.enemy = new Image();
+                sprites.enemy.src = enemySprites[0];
+
+                sprites.goal = new Image();
+                sprites.goal.src = "images/chest.png";
+            }
+
+            var enemies = [
+                new GameCharacter(250,50,50,50, "rgb(255, 185, 0", 2),
+                new GameCharacter(450,400,50,50, "rgb(255, 160, 0", 2),
+                new GameCharacter(700,50,50,50, "rgb(255, 135, 0", 2),
+            ];
+
+            var player = new GameCharacter(50,200,width,width, "rgb(0, 0, 255", 0);
+
+            var goal = new GameCharacter(screenWidth - width, 200, width, 100, "rgb(0, 0, 0", 0);
+
+            document.onkeydown = function(event) {
+                switch(event.key) {
+                    case 'ArrowRight':
+                        isRightKeyPressed = true;
+                        if (isImageReversed) {
+                            isImageReversed = !isImageReversed;
+                            sprites.player.src = playerSprites[0];
+                        }
+                        player.speed = player.maxSpeed;
+                        break;
+                    case 'ArrowLeft':
+                        isLeftKeyPressed = true;
+                        if (!isImageReversed) {
+                            isImageReversed = !isImageReversed;
+                            sprites.player.src = playerSprites[1];
+                        }
+                        player.speed = -player.maxSpeed;
+                        break;
+                }
+            }
+
+            document.onkeyup = function(event) {
+                switch(event.key) {
+                    case 'ArrowRight':
+                        isRightKeyPressed = false;
+                        if (isLeftKeyPressed) {
+                            player.speed = -player.maxSpeed;
+                        } else {
+                            player.speed = 0;
+                        }
+                        break;
+                    case 'ArrowLeft':
+                        isLeftKeyPressed = false;
+                        if (isRightKeyPressed) {
+                            player.speed = player.maxSpeed;
+                        } else {
+                            player.speed = 0;
+                        }
+                        break;
+                }
+            };
+
+            var checkCollisions = function(rect1, rect2) {
+                var xOverlap = Math.abs(rect1.x - rect2.x) <= Math.max(rect1.width, rect2.width);
+                var yOverlap = Math.abs(rect1.y - rect2.y) <= Math.max(rect1.height, rect2.height);
+                return xOverlap && yOverlap;
+            }
+
+            var draw = function () {
+                ctx.clearRect(0, 0, screenWidth, screenHeight);
+
+                ctx.drawImage(sprites.background, 0, 0);                // Background
+                ctx.drawImage(sprites.player, player.x, player.y);      // Le joueur
+                ctx.drawImage(sprites.goal, goal.x, goal.y);            // Objectif
+
+                enemies.forEach(element => {
+                    ctx.drawImage(sprites.enemy, element.x, element.y);
+                });
+                
+            }
+
+            var update = function() {
+                // Update function
+                if (player.x <= 50) { player.x = 52; }
+                if (player.x >= 950) { player.x = 948; }
+
+                player.p_moveHorizontally();
+
+                enemies.forEach(function(element) {
+                    if (checkCollisions(player, element)) {
+                        alert("Collision detected!");
+                    }
+                    element.e_moveVertically();
+                })
+
+                if (isEnemyReversed) {
+                    sprites.enemy.src = enemySprites[0];
+                } else {
+                    sprites.enemy.src = enemySprites[1];
+                }
+
+                if(checkCollisions(player, goal)) {
+                    endGameLogic("You win !");
+                }
+
+            }
+
+            var endGameLogic = function(text) {
+                isGameLive = false;
+                alert(text);
+                window.location = "";
+            }
+
+            // Equivalant au while.. loop. Fonction recursive
+            var step = function() {
+                update();
+                draw();
+                if(isGameLive) { window.requestAnimationFrame(step); }
+            }
+            loadSprites();
+            step();
+        </script>
+    </body>
+
+</html>
